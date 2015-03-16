@@ -3,9 +3,14 @@ package main
 import (
 	"flag"
 	"log"
+	"net/http"
 
 	"github.com/benbjohnson/tatslack"
 )
+
+const CommunityChannel = "C029P2S9X"
+
+const TATChannel = "C03HCH8RB"
 
 func main() {
 	log.SetFlags(0)
@@ -19,21 +24,37 @@ func main() {
 		log.Fatal("token required")
 	}
 
-	// Create client.
-	c := tatslack.Client{
-		Token: *token,
-	}
-
-	// Read twoalarmtuesday channel messages.
-	resp, err := c.ChannelHistory("C03HCH8RB")
+	// Open the database.
+	db, err := tatslack.Open("db")
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 
-	// Print messages.
-	log.Println("MESSAGES")
-	log.Println("========")
-	for _, m := range resp.Messages {
-		log.Println(">", m.Text)
+	/*
+		// Create client.
+		c := tatslack.Client{
+			Token: *token,
+		}
+
+		// Read twoalarmtuesday channel messages.
+		resp, err := c.ChannelHistory(CommunityChannel)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Write the messages in.
+		if err := db.SaveMessages(CommunityChannel, resp.Messages); err != nil {
+			log.Fatal(err)
+		}
+	*/
+
+	log.Println("listening on http://localhost:9000")
+
+	// Run HTTP server.
+	h := &tatslack.Handler{
+		DB:      db,
+		Channel: CommunityChannel,
 	}
+	http.ListenAndServe(":9000", h)
 }
