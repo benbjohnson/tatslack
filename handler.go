@@ -22,6 +22,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.serveRoot(w, r)
 	case "/messages.json":
 		h.serveMessagesJSON(w, r)
+	case "/users.json":
+		h.serveUsersJSON(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -33,7 +35,7 @@ func (h *Handler) serveRoot(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) serveMessagesJSON(w http.ResponseWriter, r *http.Request) {
 	// Retrieve messages for the channel.
-	a, err := h.DB.Messages(h.Channel)
+	a, err := h.DB.AllMessages()
 	if err != nil {
 		http.Error(w, "database error", http.StatusInternalServerError)
 		return
@@ -41,4 +43,8 @@ func (h *Handler) serveMessagesJSON(w http.ResponseWriter, r *http.Request) {
 
 	// Write out messages.
 	json.NewEncoder(w).Encode(a)
+}
+
+func (h *Handler) serveUsersJSON(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(h.DB.Users)
 }

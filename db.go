@@ -9,7 +9,8 @@ import (
 
 // DB stores the slack data.
 type DB struct {
-	db *bolt.DB
+	db    *bolt.DB
+	Users map[string]*User
 }
 
 // Open opens the underlying database.
@@ -36,6 +37,32 @@ func Open(path string) (*DB, error) {
 // Close closes the underlying database.
 func (db *DB) Close() error {
 	return db.db.Close()
+}
+
+// AllMessages returns a list of messages for all channels.
+func (db *DB) AllMessages() ([]*Message, error) {
+	// Retrieve channel ids.
+	var channels []string
+	if err := db.db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("messages")).Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			channels = append(channels, string(k))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	// Retrieve messages for each channel.
+	var a []*Message
+	for _, channel := range channels {
+		messages, err := db.Messages(channel)
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, messages...)
+	}
+	return a, nil
 }
 
 // Message returns a list of messages for a channel.
@@ -86,4 +113,13 @@ func (db *DB) SaveMessages(channel string, a []*Message) error {
 
 		return nil
 	})
+}
+
+// SetUsers sets a list of users to the database.
+func (db *DB) SetUsers(a []*User) {
+	m := make(map[string]*User)
+	for _, u := range a {
+		m[u.ID] = u
+	}
+	db.Users = m
 }
